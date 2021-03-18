@@ -115,6 +115,9 @@ KERNEL_MAKE_FLAGS = \
 	$(if $(PKG_BUILD_ID),LDFLAGS_MODULE=--build-id=0x$(PKG_BUILD_ID)) \
 	cmd_syscalls=
 
+KERNEL_NOSTDINC_FLAGS = \
+	-nostdinc $(if $(DUMP),, -isystem $(shell $(TARGET_CC) -print-file-name=include))
+
 ifeq ($(call qstrip,$(CONFIG_EXTERNAL_KERNEL_TREE))$(call qstrip,$(CONFIG_KERNEL_GIT_CLONE_URI)),)
   KERNEL_MAKE_FLAGS += \
 	KERNELRELEASE=$(LINUX_VERSION)
