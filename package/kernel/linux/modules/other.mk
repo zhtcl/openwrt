@@ -30,7 +30,7 @@ $(eval $(call KernelPackage,6lowpan))
 define KernelPackage/bluetooth
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Bluetooth support
-  DEPENDS:=@USB_SUPPORT +kmod-usb-core +kmod-crypto-hash +kmod-crypto-ecb +kmod-lib-crc16 +kmod-hid +kmod-crypto-cmac +kmod-regmap-core +kmod-crypto-ecdh
+  DEPENDS:=@USB_SUPPORT +kmod-usb-core +kmod-crypto-hash +kmod-crypto-ecb +kmod-lib-crc16 +kmod-hid +kmod-crypto-cmac +kmod-regmap-core +!LINUX_4_9:kmod-crypto-ecdh
   KCONFIG:= \
 	CONFIG_BT \
 	CONFIG_BT_BREDR=y \
@@ -136,6 +136,22 @@ endef
 $(eval $(call KernelPackage,dma-buf))
 
 
+define KernelPackage/nvmem
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=Non Volatile Memory support
+  DEPENDS:=@!LINUX_5_4
+  KCONFIG:=CONFIG_NVMEM
+  HIDDEN:=1
+  FILES:=$(LINUX_DIR)/drivers/nvmem/nvmem_core.ko@ge4.9
+endef
+
+define KernelPackage/nvmem/description
+  Support for NVMEM(Non Volatile Memory) devices like EEPROM, EFUSES, etc.
+endef
+
+$(eval $(call KernelPackage,nvmem))
+
+
 define KernelPackage/eeprom-93cx6
   SUBMENU:=$(OTHER_MENU)
   TITLE:=EEPROM 93CX6 support
@@ -155,7 +171,7 @@ define KernelPackage/eeprom-at24
   SUBMENU:=$(OTHER_MENU)
   TITLE:=EEPROM AT24 support
   KCONFIG:=CONFIG_EEPROM_AT24
-  DEPENDS:=+kmod-i2c-core +kmod-regmap-i2c
+  DEPENDS:=+kmod-i2c-core +!LINUX_5_4:kmod-nvmem +LINUX_5_4:kmod-regmap-i2c
   FILES:=$(LINUX_DIR)/drivers/misc/eeprom/at24.ko
   AUTOLOAD:=$(call AutoProbe,at24)
 endef
@@ -171,6 +187,7 @@ define KernelPackage/eeprom-at25
   SUBMENU:=$(OTHER_MENU)
   TITLE:=EEPROM AT25 support
   KCONFIG:=CONFIG_EEPROM_AT25
+  DEPENDS:=+!LINUX_5_4:kmod-nvmem
   FILES:=$(LINUX_DIR)/drivers/misc/eeprom/at25.ko
   AUTOLOAD:=$(call AutoProbe,at25)
 endef
@@ -217,12 +234,14 @@ $(eval $(call KernelPackage,gpio-f7188x))
 define KernelPackage/gpio-mcp23s08
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Microchip MCP23xxx I/O expander
-  DEPENDS:=@GPIO_SUPPORT +kmod-i2c-core +kmod-regmap-i2c
+  DEPENDS:=@GPIO_SUPPORT +kmod-i2c-core +!LINUX_4_9:kmod-regmap-i2c
   KCONFIG:= \
 	CONFIG_GPIO_MCP23S08 \
 	CONFIG_PINCTRL_MCP23S08
   FILES:= \
-	$(LINUX_DIR)/drivers/pinctrl/pinctrl-mcp23s08.ko
+	$(LINUX_DIR)/drivers/gpio/gpio-mcp23s08.ko@lt4.13 \
+	$(LINUX_DIR)/drivers/pinctrl/pinctrl-mcp23s08.ko@ge4.13
+  AUTOLOAD:=$(call AutoLoad,40,gpio-mcp23s08@lt4.13 pinctrl-mcp23s08@ge4.13)
   AUTOLOAD:=$(call AutoLoad,40,pinctrl-mcp23s08)
 endef
 
@@ -249,7 +268,7 @@ $(eval $(call KernelPackage,gpio-nxp-74hc164))
 
 define KernelPackage/gpio-pca953x
   SUBMENU:=$(OTHER_MENU)
-  DEPENDS:=@GPIO_SUPPORT +kmod-i2c-core +kmod-regmap-i2c
+  DEPENDS:=@GPIO_SUPPORT +kmod-i2c-core +!LINUX_4_9:kmod-regmap-i2c
   TITLE:=PCA95xx, TCA64xx, and MAX7310 I/O ports
   KCONFIG:=CONFIG_GPIO_PCA953X
   FILES:=$(LINUX_DIR)/drivers/gpio/gpio-pca953x.ko
@@ -299,7 +318,7 @@ $(eval $(call KernelPackage,gpio-it87))
 
 define KernelPackage/gpio-amd-fch
   SUBMENU:=$(OTHER_MENU)
-  DEPENDS:=@GPIO_SUPPORT @TARGET_x86
+  DEPENDS:=@LINUX_5_4 @GPIO_SUPPORT @TARGET_x86
   TITLE:=GPIO support for AMD Fusion Controller Hub (G-series SOCs)
   KCONFIG:=CONFIG_GPIO_AMD_FCH
   FILES:=$(LINUX_DIR)/drivers/gpio/gpio-amd-fch.ko
@@ -381,7 +400,8 @@ define KernelPackage/mmc
 	CONFIG_SDIO_UART=n
   FILES:= \
 	$(LINUX_DIR)/drivers/mmc/core/mmc_core.ko \
-	$(LINUX_DIR)/drivers/mmc/core/mmc_block.ko
+	$(LINUX_DIR)/drivers/mmc/card/mmc_block.ko@lt4.10 \
+	$(LINUX_DIR)/drivers/mmc/core/mmc_block.ko@ge4.10
   AUTOLOAD:=$(call AutoProbe,mmc_core mmc_block,1)
 endef
 
@@ -471,7 +491,7 @@ $(eval $(call KernelPackage,softdog))
 define KernelPackage/ssb
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Silicon Sonics Backplane glue code
-  DEPENDS:=@PCI_SUPPORT @!TARGET_bcm47xx @!TARGET_bcm63xx
+  DEPENDS:=@PCI_SUPPORT @!TARGET_brcm47xx @!TARGET_brcm63xx
   KCONFIG:=\
 	CONFIG_SSB \
 	CONFIG_SSB_B43_PCI_BRIDGE=y \
@@ -497,7 +517,7 @@ $(eval $(call KernelPackage,ssb))
 define KernelPackage/bcma
   SUBMENU:=$(OTHER_MENU)
   TITLE:=BCMA support
-  DEPENDS:=@PCI_SUPPORT @!TARGET_bcm47xx @!TARGET_bcm53xx
+  DEPENDS:=@PCI_SUPPORT @!TARGET_brcm47xx @!TARGET_bcm53xx
   KCONFIG:=\
 	CONFIG_BCMA \
 	CONFIG_BCMA_POSSIBLE=y \
@@ -524,7 +544,7 @@ define KernelPackage/rtc-ds1307
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Dallas/Maxim DS1307 (and compatible) RTC support
   DEFAULT:=m if ALL_KMODS && RTC_SUPPORT
-  DEPENDS:=+kmod-i2c-core +kmod-regmap-i2c +kmod-hwmon-core
+  DEPENDS:=+kmod-i2c-core +!LINUX_4_9:kmod-regmap-i2c +!LINUX_4_9:kmod-hwmon-core
   KCONFIG:=CONFIG_RTC_DRV_DS1307 \
 	CONFIG_RTC_CLASS=y
   FILES:=$(LINUX_DIR)/drivers/rtc/rtc-ds1307.ko
@@ -1006,10 +1026,27 @@ endef
 $(eval $(call KernelPackage,ptp))
 
 
+define KernelPackage/ptp-gianfar
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=Freescale Gianfar PTP support
+  DEPENDS:=@TARGET_mpc85xx +kmod-ptp @!(LINUX_4_19||LINUX_5_4)
+  KCONFIG:=CONFIG_PTP_1588_CLOCK_GIANFAR
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/freescale/gianfar_ptp.ko
+  AUTOLOAD:=$(call AutoProbe,gianfar_ptp)
+endef
+
+define KernelPackage/ptp-gianfar/description
+ Kernel module for IEEE 1588 support for Freescale
+ Gianfar Ethernet drivers
+endef
+
+$(eval $(call KernelPackage,ptp-gianfar))
+
+
 define KernelPackage/ptp-qoriq
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Freescale QorIQ PTP support
-  DEPENDS:=@TARGET_mpc85xx +kmod-ptp
+  DEPENDS:=@TARGET_mpc85xx +kmod-ptp @!(LINUX_4_9||LINUX_4_14)
   KCONFIG:=CONFIG_PTP_1588_CLOCK_QORIQ
   FILES:=$(LINUX_DIR)/drivers/ptp/ptp-qoriq.ko
   AUTOLOAD:=$(call AutoProbe,ptp-qoriq)
@@ -1035,6 +1072,23 @@ define KernelPackage/random-core/description
 endef
 
 $(eval $(call KernelPackage,random-core))
+
+
+define KernelPackage/random-tpm
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=Hardware Random Number Generator TPM support
+  KCONFIG:=CONFIG_HW_RANDOM_TPM
+  FILES:=$(LINUX_DIR)/drivers/char/hw_random/tpm-rng.ko
+  DEPENDS:= +kmod-random-core +kmod-tpm @!(LINUX_4_19||LINUX_5_4)
+  AUTOLOAD:=$(call AutoProbe,tpm-rng)
+endef
+
+define KernelPackage/random-tpm/description
+ Kernel module for the Random Number Generator
+ in the Trusted Platform Module.
+endef
+
+$(eval $(call KernelPackage,random-tpm))
 
 
 define KernelPackage/thermal
@@ -1100,6 +1154,55 @@ endef
 $(eval $(call KernelPackage,echo))
 
 
+define KernelPackage/bmp085
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=BMP085/BMP18x pressure sensor
+  DEPENDS:= @!LINUX_5_4 +kmod-regmap-core
+  KCONFIG:= CONFIG_BMP085
+  FILES:= $(LINUX_DIR)/drivers/misc/bmp085.ko
+endef
+
+define KernelPackage/bmp085/description
+ This driver adds support for Bosch Sensortec's digital pressure
+ sensors BMP085 and BMP18x.
+endef
+
+$(eval $(call KernelPackage,bmp085))
+
+
+define KernelPackage/bmp085-i2c
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=BMP085/BMP18x pressure sensor I2C
+  DEPENDS:= @!LINUX_5_4 +kmod-bmp085
+  KCONFIG:= CONFIG_BMP085_I2C
+  FILES:= $(LINUX_DIR)/drivers/misc/bmp085-i2c.ko
+  AUTOLOAD:=$(call AutoProbe,bmp085-i2c)
+endef
+
+define KernelPackage/bmp085-i2c/description
+ This driver adds support for Bosch Sensortec's digital pressure
+ sensor connected via I2C.
+endef
+
+$(eval $(call KernelPackage,bmp085-i2c))
+
+
+define KernelPackage/bmp085-spi
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=BMP085/BMP18x pressure sensor SPI
+  DEPENDS:= @!LINUX_5_4 +kmod-bmp085
+  KCONFIG:= CONFIG_BMP085_SPI
+  FILES:= $(LINUX_DIR)/drivers/misc/bmp085-spi.ko
+  AUTOLOAD:=$(call AutoProbe,bmp085-spi)
+endef
+define KernelPackage/bmp085-spi/description
+ This driver adds support for Bosch Sensortec's digital pressure
+ sensor connected via SPI.
+endef
+
+$(eval $(call KernelPackage,bmp085-spi))
+
+
 define KernelPackage/keys-encrypted
   SUBMENU:=$(OTHER_MENU)
   TITLE:=encrypted keys on kernel keyring
@@ -1144,7 +1247,7 @@ $(eval $(call KernelPackage,keys-trusted))
 define KernelPackage/tpm
   SUBMENU:=$(OTHER_MENU)
   TITLE:=TPM Hardware Support
-  DEPENDS:= +kmod-random-core
+  DEPENDS:= +!(LINUX_4_9||LINUX_4_14):kmod-random-core
   KCONFIG:= CONFIG_TCG_TPM
   FILES:= $(LINUX_DIR)/drivers/char/tpm/tpm.ko
   AUTOLOAD:=$(call AutoLoad,10,tpm,1)

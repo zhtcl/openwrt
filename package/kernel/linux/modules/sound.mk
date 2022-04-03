@@ -24,7 +24,8 @@ SOUNDCORE_FILES ?= \
 	$(LINUX_DIR)/sound/soundcore.ko \
 	$(LINUX_DIR)/sound/core/snd.ko \
 	$(LINUX_DIR)/sound/core/snd-hwdep.ko \
-	$(LINUX_DIR)/sound/core/snd-seq-device.ko \
+  $(LINUX_DIR)/sound/core/seq/snd-seq-device.ko@lt4.13 \
+	$(LINUX_DIR)/sound/core/snd-seq-device.ko@ge4.13 \
 	$(LINUX_DIR)/sound/core/snd-rawmidi.ko \
 	$(LINUX_DIR)/sound/core/snd-timer.ko \
 	$(LINUX_DIR)/sound/core/snd-pcm.ko \
@@ -191,7 +192,8 @@ define KernelPackage/sound-soc-core
   KCONFIG:= \
 	CONFIG_SND_SOC \
 	CONFIG_SND_SOC_ADI=n \
-	CONFIG_SND_SOC_GENERIC_DMAENGINE_PCM=y \
+  CONFIG_SND_SOC_DMAENGINE_PCM=y@le4.19 \
+	CONFIG_SND_SOC_GENERIC_DMAENGINE_PCM=y@gt4.19 \
 	CONFIG_SND_SOC_ALL_CODECS=n
   FILES:=$(LINUX_DIR)/sound/soc/snd-soc-core.ko
   AUTOLOAD:=$(call AutoLoad,55,snd-soc-core)
@@ -252,6 +254,25 @@ define KernelPackage/sound-soc-imx-sgtl5000/description
 endef
 
 $(eval $(call KernelPackage,sound-soc-imx-sgtl5000))
+
+
+define KernelPackage/sound-soc-gw_avila
+  TITLE:=Gateworks Avila SoC sound support
+  DEPENDS:=@!LINUX_5_4
+  KCONFIG:= \
+	CONFIG_SND_GW_AVILA_SOC \
+	CONFIG_SND_GW_AVILA_SOC_PCM \
+	CONFIG_SND_GW_AVILA_SOC_HSS
+	FILES:= \
+	$(LINUX_DIR)/sound/soc/codecs/snd-soc-tlv320aic3x.ko \
+	$(LINUX_DIR)/sound/soc/gw-avila/snd-soc-gw-avila.ko \
+	$(LINUX_DIR)/sound/soc/gw-avila/snd-soc-gw-avila-pcm.ko \
+	$(LINUX_DIR)/sound/soc/gw-avila/snd-soc-gw-avila-hss.ko
+  AUTOLOAD:=$(call AutoLoad,65,snd-soc-tlv320aic3x snd-soc-gw-avila snd-soc-gw-avila-pcm snd-soc-gw-avila-hss)
+  DEPENDS:=@TARGET_ixp4xx +kmod-sound-soc-core
+endef
+
+$(eval $(call KernelPackage,sound-soc-gw_avila))
 
 
 define KernelPackage/sound-soc-spdif
@@ -522,8 +543,9 @@ define KernelPackage/sound-hda-intel
 	CONFIG_SND_HDA_INTEL
   FILES:= \
 	$(LINUX_DIR)/sound/pci/hda/snd-hda-intel.ko \
+  $(LINUX_DIR)/sound/pci/hda/snd-hda-controller.ko@lt4.4 \
 	$(LINUX_DIR)/sound/hda/snd-intel-nhlt.ko
-  AUTOLOAD:=$(call AutoProbe,snd-hda-intel)
+  AUTOLOAD:=$(call AutoProbe,snd-hda-controller@lt4.4 snd-hda-intel)
   $(call AddDepends/sound,kmod-sound-hda-core)
 endef
 

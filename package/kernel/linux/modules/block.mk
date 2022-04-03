@@ -238,11 +238,12 @@ define KernelPackage/dm
 	CONFIG_DM_CRYPT \
 	CONFIG_DM_MIRROR
   FILES:= \
-    $(LINUX_DIR)/drivers/md/dm-mod.ko \
-    $(LINUX_DIR)/drivers/md/dm-crypt.ko \
-    $(LINUX_DIR)/drivers/md/dm-log.ko \
-    $(LINUX_DIR)/drivers/md/dm-mirror.ko \
-    $(LINUX_DIR)/drivers/md/dm-region-hash.ko
+    $(LINUX_DIR)/drivers/md/dm-*.ko@le4.19 \
+    $(LINUX_DIR)/drivers/md/dm-mod.ko@gt4.19 \
+    $(LINUX_DIR)/drivers/md/dm-crypt.ko@gt4.19 \
+    $(LINUX_DIR)/drivers/md/dm-log.ko@gt4.19 \
+    $(LINUX_DIR)/drivers/md/dm-mirror.ko@gt4.19 \
+    $(LINUX_DIR)/drivers/md/dm-region-hash.ko@gt4.19
   AUTOLOAD:=$(call AutoLoad,30,dm-mod dm-log dm-region-hash dm-mirror dm-crypt)
 endef
 
@@ -256,7 +257,8 @@ define KernelPackage/dm-raid
   SUBMENU:=$(BLOCK_MENU)
   TITLE:=LVM2 raid support
   DEPENDS:=+kmod-dm +kmod-md-mod \
-           +kmod-md-raid0 +kmod-md-raid1 +kmod-md-raid10 +kmod-md-raid456
+           +kmod-md-raid0 +kmod-md-raid1 +kmod-md-raid10 +kmod-md-raid456 \
+           @LINUX_5_4
   KCONFIG:= \
 	CONFIG_DM_RAID
   FILES:=$(LINUX_DIR)/drivers/md/dm-raid.ko
@@ -273,7 +275,7 @@ $(eval $(call KernelPackage,dm-raid))
 define KernelPackage/iscsi-initiator
   SUBMENU:=$(BLOCK_MENU)
   TITLE:=iSCSI Initiator over TCP/IP
-  DEPENDS:=+kmod-scsi-core +kmod-crypto-hash
+  DEPENDS:=+kmod-scsi-core +kmod-crypto-hash @LINUX_5_4
   KCONFIG:= \
 	CONFIG_INET \
 	CONFIG_SCSI_LOWLEVEL=y \
@@ -569,6 +571,7 @@ $(eval $(call KernelPackage,scsi-tape))
 define KernelPackage/iosched-bfq
   SUBMENU:=$(BLOCK_MENU)
   TITLE:=Kernel support for BFQ I/O scheduler
+  DEPENDS:=@LINUX_5_4
   KCONFIG:= \
     CONFIG_IOSCHED_BFQ \
     CONFIG_BFQ_GROUP_IOSCHED=y \

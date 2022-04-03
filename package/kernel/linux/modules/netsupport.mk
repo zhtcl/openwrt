@@ -60,7 +60,9 @@ $(eval $(call KernelPackage,bonding))
 define KernelPackage/udptunnel4
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=IPv4 UDP tunneling support
-  KCONFIG:=CONFIG_NET_UDP_TUNNEL
+  KCONFIG:= \
+	CONFIG_NET_UDP_TUNNEL \
+	CONFIG_VXLAN=m@le4.19
   HIDDEN:=1
   FILES:=$(LINUX_DIR)/net/ipv4/udp_tunnel.ko
   AUTOLOAD:=$(call AutoLoad,32,udp_tunnel)
@@ -73,7 +75,9 @@ define KernelPackage/udptunnel6
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=IPv6 UDP tunneling support
   DEPENDS:=@IPV6
-  KCONFIG:=CONFIG_NET_UDP_TUNNEL
+  KCONFIG:= \
+	CONFIG_NET_UDP_TUNNEL \
+	CONFIG_VXLAN=m@le4.19
   HIDDEN:=1
   FILES:=$(LINUX_DIR)/net/ipv6/ip6_udp_tunnel.ko
   AUTOLOAD:=$(call AutoLoad,32,ip6_udp_tunnel)
@@ -123,10 +127,32 @@ endef
 $(eval $(call KernelPackage,geneve))
 
 
+define KernelPackage/capi
+  SUBMENU:=$(NETWORK_SUPPORT_MENU)
+  TITLE:=CAPI (ISDN) Support
+  DEPENDS:=@!LINUX_5_4
+  KCONFIG:= \
+	CONFIG_ISDN_CAPI \
+	CONFIG_ISDN_CAPI_CAPI20 \
+	CONFIG_ISDN_CAPIFS \
+	CONFIG_ISDN_CAPI_CAPIFS
+  FILES:= \
+	$(LINUX_DIR)/drivers/isdn/capi/kernelcapi.ko \
+	$(LINUX_DIR)/drivers/isdn/capi/capi.ko
+  AUTOLOAD:=$(call AutoLoad,30,kernelcapi capi)
+endef
+
+define KernelPackage/capi/description
+ Kernel module for basic CAPI (ISDN) support
+endef
+
+$(eval $(call KernelPackage,capi))
+
+
 define KernelPackage/nsh
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=Network Service Header (NSH) protocol
-  DEPENDS:=
+  DEPENDS:=@LINUX_5_4
   KCONFIG:=CONFIG_NET_NSH
   FILES:=$(LINUX_DIR)/net/nsh/nsh.ko
   AUTOLOAD:=$(call AutoLoad,13,nsh)
@@ -222,7 +248,7 @@ define KernelPackage/ipsec
   DEPENDS:= \
 	+kmod-crypto-authenc +kmod-crypto-cbc +kmod-crypto-deflate \
 	+kmod-crypto-des +kmod-crypto-echainiv +kmod-crypto-hmac \
-	+kmod-crypto-md5 +kmod-crypto-sha1
+	+!LINUX_5_4:kmod-crypto-iv +kmod-crypto-md5 +kmod-crypto-sha1
   KCONFIG:= \
 	CONFIG_NET_KEY \
 	CONFIG_XFRM_USER \
@@ -375,7 +401,7 @@ $(eval $(call KernelPackage,ip6-vti))
 define KernelPackage/xfrm-interface
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=IPsec XFRM Interface
-  DEPENDS:=+kmod-ipsec4 +IPV6:kmod-ipsec6
+  DEPENDS:=+kmod-ipsec4 +IPV6:kmod-ipsec6 @!(LINUX_4_9||LINUX_4_14)
   KCONFIG:=CONFIG_XFRM_INTERFACE
   FILES:=$(LINUX_DIR)/net/xfrm/xfrm_interface.ko
   AUTOLOAD:=$(call AutoProbe,xfrm_interface)
@@ -765,7 +791,7 @@ $(eval $(call KernelPackage,sched-core))
 define KernelPackage/sched-cake
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=Cake fq_codel/blue derived shaper
-  DEPENDS:=+kmod-sched-core
+  DEPENDS:=@!(LINUX_4_9||LINUX_4_14) +kmod-sched-core
   KCONFIG:=CONFIG_NET_SCH_CAKE
   FILES:=$(LINUX_DIR)/net/sched/sch_cake.ko
   AUTOLOAD:=$(call AutoProbe,sch_cake)
@@ -929,7 +955,10 @@ $(eval $(call KernelPackage,sched))
 define KernelPackage/tcp-bbr
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=BBR TCP congestion control
-  KCONFIG:=CONFIG_TCP_CONG_BBR
+  DEPENDS:=+LINUX_4_9:kmod-sched
+  KCONFIG:= \
+	CONFIG_TCP_CONG_ADVANCED=y@le4.19 \
+	CONFIG_TCP_CONG_BBR
   FILES:=$(LINUX_DIR)/net/ipv4/tcp_bbr.ko
   AUTOLOAD:=$(call AutoProbe,tcp_bbr)
 endef
@@ -940,7 +969,11 @@ define KernelPackage/tcp-bbr/description
  For kernel 4.13+, TCP internal pacing is implemented as fallback.
 endef
 
-TCP_BBR_SYSCTL_CONF:=sysctl-tcp-bbr.conf
+ifdef CONFIG_LINUX_4_9
+  TCP_BBR_SYSCTL_CONF:=sysctl-tcp-bbr-k4_9.conf
+else
+  TCP_BBR_SYSCTL_CONF:=sysctl-tcp-bbr.conf
+endif
 
 define KernelPackage/tcp-bbr/install
 	$(INSTALL_DIR) $(1)/etc/sysctl.d
@@ -1140,8 +1173,10 @@ define KernelPackage/rxrpc
 	CONFIG_RXKAD=m \
 	CONFIG_AF_RXRPC_DEBUG=n
   FILES:= \
-	$(LINUX_DIR)/net/rxrpc/rxrpc.ko
-  AUTOLOAD:=$(call AutoLoad,30,rxrpc.ko)
+	$(LINUX_DIR)/net/rxrpc/af-rxrpc.ko@lt4.11 \
+	$(LINUX_DIR)/net/rxrpc/rxrpc.ko@ge4.11 \
+	$(LINUX_DIR)/net/rxrpc/rxkad.ko@lt4.7
+  AUTOLOAD:=$(call AutoLoad,30,rxkad@lt4.7 af-rxrpc.ko@lt4.11 rxrpc.ko@ge4.11)
   DEPENDS:= +kmod-crypto-manager +kmod-crypto-pcbc +kmod-crypto-fcrypt
 endef
 
@@ -1154,7 +1189,7 @@ $(eval $(call KernelPackage,rxrpc))
 define KernelPackage/mpls
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=MPLS support
-  DEPENDS:=+kmod-iptunnel
+  DEPENDS:=+!(LINUX_4_9||LINUX_4_14):kmod-iptunnel
   KCONFIG:= \
 	CONFIG_MPLS=y \
 	CONFIG_LWTUNNEL=y \
@@ -1263,6 +1298,7 @@ define KernelPackage/wireguard
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=WireGuard secure network tunnel
   DEPENDS:= \
+	  @LINUX_5_4 \
 	  +kmod-crypto-lib-blake2s \
 	  +kmod-crypto-lib-chacha20poly1305 \
 	  +kmod-crypto-lib-curve25519 \

@@ -123,7 +123,7 @@ $(eval $(call KernelPackage,cc2520))
 define KernelPackage/ca8210
   SUBMENU:=$(WPAN_MENU)
   TITLE:=CA8210 transceiver driver
-  DEPENDS:=+kmod-mac802154
+  DEPENDS:=@!LINUX_4_9 +kmod-mac802154
   KCONFIG:=CONFIG_IEEE802154_CA8210 \
 	CONFIG_SPI=y \
 	CONFIG_SPI_MASTER=y \

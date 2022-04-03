@@ -109,6 +109,7 @@ $(eval $(call KernelPackage,hwmon-dme1737))
 
 define KernelPackage/hwmon-drivetemp
   TITLE:=Hard disk drives with temperature sensor
+  DEPENDS:=@LINUX_5_4
   KCONFIG:=CONFIG_SENSORS_DRIVETEMP
   FILES:=$(LINUX_DIR)/drivers/hwmon/drivetemp.ko
   AUTOLOAD:=$(call AutoLoad,60,drivetemp)
