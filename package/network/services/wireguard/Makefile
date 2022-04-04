@@ -69,21 +69,21 @@ define Package/wireguard/description
   $(call Package/wireguard/Default/description)
 endef
 
-define KernelPackage/wireguard
+define KernelPackage/wireguard-old
   SECTION:=kernel
   CATEGORY:=Kernel modules
   SUBMENU:=Network Support
   TITLE:=WireGuard kernel module
-  DEPENDS:=+IPV6:kmod-udptunnel6 +kmod-udptunnel4
+  DEPENDS:=@!LINUX_5.4 +IPV6:kmod-udptunnel6 +kmod-udptunnel4
   FILES:= $(PKG_BUILD_DIR)/src/wireguard.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoProbe,wireguard)
 endef
 
-define KernelPackage/wireguard/description
+define KernelPackage/wireguard-old/description
   $(call Package/wireguard/Default/description)
 
   This package provides the kernel module for WireGuard.
 endef
 
 $(eval $(call BuildPackage,wireguard))
-$(eval $(call KernelPackage,wireguard))
+$(eval $(call KernelPackage,wireguard-old))

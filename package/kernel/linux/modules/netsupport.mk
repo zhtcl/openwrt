@@ -1298,17 +1298,17 @@ define KernelPackage/wireguard
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=WireGuard secure network tunnel
   DEPENDS:= \
-	  @LINUX_5_4 \
-	  +kmod-crypto-lib-blake2s \
-	  +kmod-crypto-lib-chacha20poly1305 \
-	  +kmod-crypto-lib-curve25519 \
+	  +!LINUX_5_4:kmod-wireguard-old \
+	  +LINUX_5_4:kmod-crypto-lib-blake2s \
+	  +LINUX_5_4:kmod-crypto-lib-chacha20poly1305 \
+	  +LINUX_5_4:kmod-crypto-lib-curve25519 \
 	  +kmod-udptunnel4 \
 	  +IPV6:kmod-udptunnel6
   KCONFIG:= \
-	  CONFIG_WIREGUARD \
-	  CONFIG_WIREGUARD_DEBUG=n
-  FILES:=$(LINUX_DIR)/drivers/net/wireguard/wireguard.ko
-  AUTOLOAD:=$(call AutoProbe,wireguard)
+	  CONFIG_WIREGUARD@ge5.4 \
+	  CONFIG_WIREGUARD_DEBUG=n@ge5.4
+  FILES:=$(LINUX_DIR)/drivers/net/wireguard/wireguard.ko@ge5.4
+  AUTOLOAD:=$(call AutoProbe,wireguard@ge5.4)
 endef
 
 define KernelPackage/wireguard/description
