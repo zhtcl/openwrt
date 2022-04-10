@@ -1,0 +1,93 @@
+--- a/ath10k-4.19/mac.c
+--- b/ath10k-4.19/mac.c
+@@ -23,6 +23,7 @@
+ #include <linux/etherdevice.h>
+ #include <linux/acpi.h>
+ #include <linux/module.h>
++#include <linux/version.h>
+ 
+ #include "hif.h"
+ #include "core.h"
+@@ -6072,10 +6073,17 @@ static int ath10k_add_interface(struct i
+ 	if (vif->type == NL80211_IFTYPE_ADHOC ||
+ 	    vif->type == NL80211_IFTYPE_MESH_POINT ||
+ 	    vif->type == NL80211_IFTYPE_AP) {
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
++		arvif->beacon_buf = dma_alloc_coherent(ar->dev,
++						       IEEE80211_MAX_FRAME_LEN,
++						       &arvif->beacon_paddr,
++						       GFP_ATOMIC);
++#else
+ 		arvif->beacon_buf = dma_zalloc_coherent(ar->dev,
+ 							IEEE80211_MAX_FRAME_LEN,
+ 							&arvif->beacon_paddr,
+ 							GFP_ATOMIC);
++#endif
+ 		if (!arvif->beacon_buf) {
+ 			ret = -ENOMEM;
+ 			ath10k_warn(ar, "failed to allocate beacon buffer: %d\n",
+--- a/ath10k-4.19/wmi.c
+--- b/ath10k-4.19/wmi.c
+@@ -19,6 +19,7 @@
+ #include <linux/skbuff.h>
+ #include <linux/ctype.h>
+ #include <linux/module.h>
++#include <linux/version.h>
+ 
+ #include "core.h"
+ #include "htc.h"
+@@ -5478,7 +5479,11 @@ static int ath10k_wmi_alloc_chunk(struct
+ 	void *vaddr;
+ 
+ 	pool_size = num_units * round_up(unit_len, 4);
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
++	vaddr = dma_alloc_coherent(ar->dev, pool_size, &paddr, GFP_KERNEL);
++#else
+ 	vaddr = dma_zalloc_coherent(ar->dev, pool_size, &paddr, GFP_KERNEL);
++#endif
+ 
+ 	if (!vaddr)
+ 		return -ENOMEM;
+--- a/ath10k-4.19/ce.c
++++ b/ath10k-4.19/ce.c
+@@ -1548,11 +1548,19 @@ ath10k_ce_alloc_dest_ring(struct ath10k
+ 	 * Legacy platforms that do not support cache
+ 	 * coherent DMA are unsupported
+ 	 */
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
++	dest_ring->base_addr_owner_space_unaligned =
++		dma_alloc_coherent(ar->dev,
++				    (nentries * sizeof(struct ce_desc) +
++				     CE_DESC_RING_ALIGN),
++				    &base_addr, GFP_KERNEL);
++#else
+ 	dest_ring->base_addr_owner_space_unaligned =
+ 		dma_zalloc_coherent(ar->dev,
+ 				    (nentries * sizeof(struct ce_desc) +
+ 				     CE_DESC_RING_ALIGN),
+ 				    &base_addr, GFP_KERNEL);
++#endif
+ 	if (!dest_ring->base_addr_owner_space_unaligned) {
+ 		kfree(dest_ring);
+ 		return ERR_PTR(-ENOMEM);
+--- a/ath10k-4.19/pci.c
++++ b/ath10k-4.19/pci.c
+@@ -936,11 +936,17 @@ static int ath10k_pci_diag_read_mem(stru
+ 	 *   2) Buffer in DMA-able space
+ 	 */
+ 	alloc_nbytes = min_t(unsigned int, nbytes, DIAG_TRANSFER_LIMIT);
+-
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
++	data_buf = (unsigned char *)dma_alloc_coherent(ar->dev,
++						       alloc_nbytes,
++						       &ce_data_base,
++						       GFP_ATOMIC);
++#else
+ 	data_buf = (unsigned char *)dma_zalloc_coherent(ar->dev,
+ 						       alloc_nbytes,
+ 						       &ce_data_base,
+ 						       GFP_ATOMIC);
++#endif
+ 
+ 	if (!data_buf) {
+ 		ret = -ENOMEM;
