@@ -1299,7 +1299,6 @@ define KernelPackage/wireguard
   TITLE:=WireGuard secure network tunnel
   DEPENDS:= \
 	  +!LINUX_5_4:kmod-wireguard-old \
-	  +LINUX_5_4:kmod-crypto-lib-blake2s \
 	  +LINUX_5_4:kmod-crypto-lib-chacha20poly1305 \
 	  +LINUX_5_4:kmod-crypto-lib-curve25519 \
 	  +kmod-udptunnel4 \

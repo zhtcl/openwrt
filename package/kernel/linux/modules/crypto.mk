@@ -467,31 +467,6 @@ endef
 $(eval $(call KernelPackage,crypto-kpp))
 
 
-define KernelPackage/crypto-lib-blake2s
-  TITLE:=BLAKE2s hash function library
-  DEPENDS:=@LINUX_5_4
-  KCONFIG:=CONFIG_CRYPTO_LIB_BLAKE2S
-  HIDDEN:=1
-  FILES:= \
-	$(LINUX_DIR)/lib/crypto/libblake2s.ko \
-	$(LINUX_DIR)/lib/crypto/libblake2s-generic.ko
-  $(call AddDepends/crypto,+PACKAGE_kmod-crypto-hash:kmod-crypto-hash)
-endef
-
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,5.4.0)),1)
-define KernelPackage/crypto-lib-blake2s/config
-  imply PACKAGE_kmod-crypto-hash
-endef
-endif
-
-define KernelPackage/crypto-lib-blake2s/x86/64
-  KCONFIG+=CONFIG_CRYPTO_BLAKE2S_X86
-  FILES+=$(LINUX_DIR)/arch/x86/crypto/blake2s-x86_64.ko
-endef
-
-$(eval $(call KernelPackage,crypto-lib-blake2s))
-
-
 define KernelPackage/crypto-lib-chacha20
   TITLE:=ChaCha library interface
   DEPENDS:=@LINUX_5_4
